@@ -1,0 +1,38 @@
+config:
+# ------------------ #
+#     CSV config     #
+# ------------------ #
+  CSV:
+    CSV_DIR: "./data"
+    file_validation: "validation.csv"
+    separadores: ","
+    usecols: 
+      - user_id
+      - price
+      - timestamp
+    # El chunk es para la lectura parcial del CSV  
+    usar_chunk: True 
+
+# ------------------ #
+#     SQL config     #
+# ------------------ #
+  SQL:
+    sql_path : config/sql/schema.sql
+    page_size: 1000
+
+    insert_query: |
+      INSERT INTO events (user_id, price, ts, updated_by) VALUES %s
+
+    query_stats: |
+      SELECT COUNT(*) AS total_rows,
+           AVG(price)::float8 AS avg_price,
+           MIN(price)::float8 AS min_price,
+           MAX(price)::float8 AS max_price
+      FROM events;
+
+    query_running: |
+      SELECT count, mean, min, max, updated_at FROM running_stats WHERE id = 1;
+    
+    query_update: |
+      UPDATE running_stats SET count=%s, mean=%s, min=%s, max=%s, updated_at=NOW() WHERE id=1
+  

@@ -1,0 +1,84 @@
+import click
+from pathlib import Path
+from config.load_config import cargar_config
+
+from src.modulos.db import init_db, fetch_db_stats, get_running_stats
+from src.modulos.ingesta import ingest_file, iter_csv_files
+
+
+@click.group()
+@click.option("--config", default="config/config.yaml", show_default=True, help="Ruta al archivo de configuración YAML.")
+@click.pass_context
+def cli(ctx, config):
+    """
+        CLI del reto Pragma: inicializa DB, ingesta CSV, muestra estadísticas.
+    """
+    #Esta funcion crea el grupo de comandos para la ejecucion del pipeline, teniendo en cuenta el archivo config.yaml
+    ctx.ensure_object(dict)
+    ctx.obj["config"] = cargar_config(config)
+
+@cli.command()
+@click.pass_context
+def initdb(ctx):
+    """
+        Crea tablas y la fila inicial de la tabla 'running_stats'.
+    """
+    # Esta función trabaja con la ruta al archivo schema.slq que se describe en el archivo config.yaml
+    config = ctx.obj["config"]
+    init_db(config)
+    click.echo("DB inicializada.")
+
+
+@cli.command()
+@click.option("--mode", type=click.Choice(["row", "chunk"]), default="row", show_default=True)
+@click.option("--chunksize", type=int, default=1, show_default=True, help="Tamaño de procesamiento del CSV, default = 1, por row")
+@click.option("--include-validation", is_flag=True, help="Ingresa también validation.csv")
+@click.option("--single", type=str, default=None, help="Procesa solo un archivo por nombre (opcional)")
+@click.pass_context
+def load(ctx, mode, include_validation, single, chunksize):
+    """
+        Carga los archivos CSV (y opcionalmente validation.csv); 
+        tambien puede cargar el archivo CSV individualmente si se le indica.  
+        Todo lo hace con estadísticas en ejecución.
+    """
+    # Esta es la funcion principal del pipeline, en donde ejecuta el proceso de ingesta y realiza las estadisticas 
+    config = ctx.obj["config"]
+    if single:
+        path_ = Path(config['CSV'].get("CSV_DIR")) / single
+        ingest_file(path_, mode, chunksize, config)
+        return
+    for path_ in iter_csv_files(config, include_validation):
+        ingest_file(path_, mode, chunksize, config)
+
+@cli.command()
+@click.pass_context
+def print_stats(ctx):
+    """
+        Imprime las estadísticas en ejecución almacenadas.
+    """
+    # Funcion para imprimir todas las estadisticas almacenadas en la ejecucion 
+    config = ctx.obj["config"]
+    rs = get_running_stats(config)
+    click.echo(
+    f"RunningStats → count={rs['count']} mean={rs['mean']:.2f} min={rs['min']:.2f} max={rs['max']:.2f} updated_at={rs['updated_at']}"
+    )
+
+@cli.command()
+@click.pass_context
+def db_stats(ctx):
+    """
+        Consulta en DB: count/avg/min/max calculados por SQL (para verificación).
+    """
+    # Esta funcion si entra en la BD y realiza la consulta indicada. 
+    config = ctx.obj["config"]
+    s = fetch_db_stats(config)
+
+    avg_price = f"{s['avg_price']:.2f}" if s['avg_price'] is not None else "nan"
+    min_price = f"{s['min_price']:.2f}" if s['min_price'] is not None else "nan"
+    max_price = f"{s['max_price']:.2f}" if s['max_price'] is not None else "nan"
+
+    click.echo(
+        f"DB Stats → total_rows={s['total_rows']} "
+        f"avg_price={avg_price} min_price={min_price} max_price={max_price}"
+    )
+

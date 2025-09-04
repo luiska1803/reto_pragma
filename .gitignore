@@ -1,0 +1,9 @@
+__pycache__
+.pytest_cache
+.venv
+/config/__pycache__
+/config/logs
+/src/__pycache__
+/src/modulos/__pycache__
+/src/submodulos/__pycache__
+/test/__pycache__
