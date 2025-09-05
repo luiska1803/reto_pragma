@@ -2,8 +2,9 @@ import click
 from pathlib import Path
 from config.load_config import cargar_config
 
-from src.modulos.db import init_db, fetch_db_stats, get_running_stats
+from src.modulos.db import init_db, fetch_db_stats, get_running_stats, db_query
 from src.modulos.ingesta import ingest_file, iter_csv_files
+from src.submodulos.llm import VectorStoreLLM
 
 
 @click.group()
@@ -60,7 +61,7 @@ def print_stats(ctx):
     config = ctx.obj["config"]
     rs = get_running_stats(config)
     click.echo(
-    f"RunningStats → count={rs['count']} mean={rs['mean']:.2f} min={rs['min']:.2f} max={rs['max']:.2f} updated_at={rs['updated_at']}"
+    f"RunningStats → Conteo={rs['count']} Promedio: {rs['mean']:.2f} Minimo={rs['min']:.2f} Maximo={rs['max']:.2f} Actualizado en: {rs['updated_at']}"
     )
 
 @cli.command()
@@ -78,7 +79,26 @@ def db_stats(ctx):
     max_price = f"{s['max_price']:.2f}" if s['max_price'] is not None else "nan"
 
     click.echo(
-        f"DB Stats → total_rows={s['total_rows']} "
-        f"avg_price={avg_price} min_price={min_price} max_price={max_price}"
+        f"DB Stats → Total de registros: {s['total_rows']} "
+        f"Promedio de precio: {avg_price} precio minimo: {min_price} precio maximo: {max_price}"
     )
 
+@cli.command()
+@click.option("--limit_rows", type=int, default=1000, help="limite de rows que tomara para trabajar con LLM")
+@click.pass_context
+def llm(ctx, limit_rows):
+    """
+        Carga la info que tengas en la DB y la usa para entrenar un LLM y poder hacer preguntas
+    """
+    config = ctx.obj["config"]
+    df = db_query(config, limit_rows)
+    vector = VectorStoreLLM(df, config)
+    while True:
+        print("\n\n-------------------------------")
+        pregunta = input("Hasme tu pregunta (q para salir): ")
+        print("\n\n")
+        if pregunta == "q":
+            break
+        
+        respuesta = vector.get_pregunta(pregunta)
+        print(respuesta)

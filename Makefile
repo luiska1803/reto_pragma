@@ -10,11 +10,11 @@ db_init:
 load: 
 	python main.py load
 
-load_chunk:
-	python main.py load --mode chunk --chunksize 5
-
 load_full:
 	python main.py load --mode row --include-validation 
+
+load_chunk:
+	python main.py load --mode chunk --chunksize 5
 
 load_full_chunk:
 	python main.py load --mode chunk --chunksize 5 --include-validation 
@@ -22,11 +22,14 @@ load_full_chunk:
 load_val:
 	python main.py load --mode row --single validation.csv 
 
-db_stats:
-	python main.py db-stats
-
 stats:
 	python main.py print-stats
 
+db_stats:
+	python main.py db-stats
+
 unit_test:
 	pytest
+
+llm:
+	python main.py llm --limit_rows 1000

@@ -1,4 +1,5 @@
 import os
+import pandas as pd
 import psycopg2
 from psycopg2.extras import execute_values
 from pathlib import Path
@@ -171,3 +172,33 @@ def update_running_stats(count, mean, min_, max_, config):
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute(query, (count, mean, min_, max_))
         conn.commit()
+
+
+def db_query(config, limit_rows: int = None) -> pd.DataFrame:
+    """
+    Ejecuta una consulta SQL definida en el archivo de configuración y 
+    devuelve el resultado como un DataFrame de Pandas.
+
+    Args:
+        config (dict): Diccionario de configuración que contiene la clave 'SQL'
+            con la query bajo la clave 'query_llm'.
+        limit_rows (int, optional): Límite de filas a retornar. 
+            Si es None no se aplica límite.
+
+    Returns:
+        pd.DataFrame: Resultado de la consulta en un DataFrame.
+    """
+    config = config['SQL']
+    query = config.get("query_llm")
+
+    # Validar si aplicar límite
+    if limit_rows is not None:
+        if not isinstance(limit_rows, int) or limit_rows < 1:
+            raise ValueError("limit_rows debe ser un entero positivo")
+        query = f"{query} LIMIT {limit_rows};"
+
+    # Ejecutar query y pasar a DataFrame
+    with get_conn() as conn:
+        df = pd.read_sql_query(query, conn)
+
+    return df

@@ -30,6 +30,7 @@ def iter_csv_files(config: Dict[str, Any], include_validation: bool = False):
     """
     config = config['CSV']
     csv_dir = Path(config.get("CSV_DIR"))
+    # Utilizamos sorted paraque el orden temporal sea respetado (2012-1.csv antes que 2012-2.csv, etc.).
     csv_path_files = sorted(
         [f for f in csv_dir.iterdir() if f.is_file() and f.suffix == ".csv"]
     )
@@ -124,6 +125,7 @@ def ingest_file(path: Path, mode: str, chunksize: int, config: Dict[str, Any]):
     rs = load_running_stats_from_db(config)
     
     # Usamos Pandas maneja parseo incremental
+    # Con esto aeguramos que no carga los CSV completos en memoria: itera por fila o por chunks
     csv_reader = CSVReader(config=config)
     for chunk in csv_reader.run(path, chunksize):
         # Normalizamos columnas esperadas

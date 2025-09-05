@@ -1,6 +1,7 @@
 __pycache__
 .pytest_cache
 .venv
+chrome_langchain_db
 /config/__pycache__
 /config/logs
 /src/__pycache__

@@ -36,3 +36,29 @@ config:
     query_update: |
       UPDATE running_stats SET count=%s, mean=%s, min=%s, max=%s, updated_at=NOW() WHERE id=1
   
+    query_llm: |
+      SELECT * FROM events  
+
+# ------------------ #
+#     LLM config     #
+# ------------------ #
+
+  llm:
+    collection_name: pragma_data
+    db_location: "./chrome_langchain_db"
+    embedding_model: mxbai-embed-large
+    k: 5
+    metadata: 
+      user_id: user_id
+      timestamp: ts
+      precio: price
+      updated_by: updated_by
+    
+    llm_model: llama3.2
+    template: |
+      Tienes la siguiente información de compras de usuarios:
+      {reviews}
+      Usando estos datos, responde la siguiente pregunta de manera clara y concisa:
+      {question}
+
+    
