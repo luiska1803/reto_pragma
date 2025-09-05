@@ -72,14 +72,14 @@ def db_stats(ctx):
     """
     # Esta funcion si entra en la BD y realiza la consulta indicada. 
     config = ctx.obj["config"]
-    s = fetch_db_stats(config)
+    stats = fetch_db_stats(config)
 
-    avg_price = f"{s['avg_price']:.2f}" if s['avg_price'] is not None else "nan"
-    min_price = f"{s['min_price']:.2f}" if s['min_price'] is not None else "nan"
-    max_price = f"{s['max_price']:.2f}" if s['max_price'] is not None else "nan"
+    avg_price = f"{stats['avg_price']:.2f}" if stats['avg_price'] is not None else "nan"
+    min_price = f"{stats['min_price']:.2f}" if stats['min_price'] is not None else "nan"
+    max_price = f"{stats['max_price']:.2f}" if stats['max_price'] is not None else "nan"
 
     click.echo(
-        f"DB Stats → Total de registros: {s['total_rows']} "
+        f"DB Stats → Total de registros: {stats['total_rows']} "
         f"Promedio de precio: {avg_price} precio minimo: {min_price} precio maximo: {max_price}"
     )
 
@@ -90,6 +90,7 @@ def llm(ctx, limit_rows):
     """
         Carga la info que tengas en la DB y la usa para entrenar un LLM y poder hacer preguntas
     """
+    # Esta funcion establece un LLM para interacion con lenguaje natural
     config = ctx.obj["config"]
     df = db_query(config, limit_rows)
     vector = VectorStoreLLM(df, config)

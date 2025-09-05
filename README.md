@@ -5,7 +5,8 @@
 
 Este proyecto implementa un **pipeline de ingesta de datos** desde archivos CSV hacia una base de datos PostgreSQL, con el cálculo incremental de estadísticas (`count`, `mean`, `min`, `max`) sobre el campo `price`.  
 
-Los archivos a procesar son:
+**Data:** Los archivos a procesar son:
+
    - `2012-1.csv`
    - `2012-2.csv`
    - `2012-3.csv`
@@ -13,11 +14,25 @@ Los archivos a procesar son:
    - `2012-5.csv`
    - `validation.csv` (Este archivo se utiliza solo al final para la validación).
 
+Esta data cuenta con los campos `timestamp`, `price` y `user_id`; la data consta de registros de compra de los usuarios en una fecha especifica. Como buena practica, se debe normalizar la data para la subida a la base de datos, de igual manera se hara un proceso de limpieza de la data, donde se eliminaran datos nulos y repetidos, finalmente se añadira un campo de `updated_by` con el fin de saber el usuario que actualizo la data. 
+
+**Particionamiento planteado:** Dado que los archivos estan en una forma con una estructura de fecha, el particionamiento se toma por fecha en forma lineal, esto hace que el pipeline sea secuencial y se puedan observar los datos mas facilmente. 
+
+**Bases de datos escogidas:** Se escoge la base de datos de postgreSQL ya que es un motor que soporta ANSI SQL, lo cual hace que se puedan usar funciones de agregación, ademas dado que es open source no necesitamos de una licencia para su uso. De igual forma tambien se coloca pgadmin con el fin de facilitar la lectura en la base de datos.
+
+**Modelo propuesto:** El modelo propuesto es un modelo estrella, ya que separa la tabla de hechos `events` y la tabla de estadisticas `running_stats`, esto facilita consultas y es muy usado en entornos Data Warehosue orientado a consultas. 
+
+**Diagrama de Flujo:**
+
+![alt text](<diagrama de flujo pipeline.png>)
+
+**Agregaciones extras:**
+
 De manera extra, este proyecto tambien establace un entrenamiento de modelo LLM, con el que se puede interactuar y realizar preguntas libres sobre la data presentada. 
 
 ## 📂 Estructura del proyecto
 
-      ├── data /                    # Carpeta donde estan los datos "brutos" 
+      ├── data /                          # Carpeta donde estan los datos "brutos" 
       |   ├── 2012-1.csv
       |   ├── 2012-2.csv
       |   ├── 2012-3.csv
@@ -26,30 +41,31 @@ De manera extra, este proyecto tambien establace un entrenamiento de modelo LLM,
       |   └── validation.csv 
       ├── config /
       |   ├── sql/
-      |   |    └── schema.sql       # Archivo SQL con el schema propuesto.
-      |   ├── config.yaml           # Archivo yaml con la configuracion general del proyecto.
-      |   ├── load_config.yaml      # Archivo para cargar configuración del archivo config.yaml.
-      |   └── logging_utils.py      # Archivo de logger para creacion de logs.
+      |   |    └── schema.sql             # Archivo SQL con el schema propuesto.
+      |   ├── config.yaml                 # Archivo yaml con la configuracion general del proyecto.
+      |   ├── load_config.yaml            # Archivo para cargar configuración del archivo config.yaml.
+      |   └── logging_utils.py            # Archivo de logger para creacion de logs.
       ├── src /
       |   ├── modulos/
-      |   |   ├── db.py             # Conexión a la DB, creación de tablas, queries
-      |   |   ├── ingesta.py        # Archivo de ingesta y proceso del workflow.
-      |   |   ├── limpieza.py       # Archivo de limpieza del(os) Dataframe(s)
-      |   |   └── stats.py          # Archivo de cálculo incremental de estadísticas
+      |   |   ├── db.py                   # Conexión a la DB, creación de tablas, queries
+      |   |   ├── ingesta.py              # Archivo de ingesta y proceso del workflow.
+      |   |   ├── limpieza.py             # Archivo de limpieza del(os) Dataframe(s)
+      |   |   └── stats.py                # Archivo de cálculo incremental de estadísticas
       |   └── submodulos/
-      |   |   ├── csv_reader.py     # Archivo lector de CSV en filas o chunks
-      |   |   └── llm.py            # Archivo de configuracion de LLM.
-      |   └── proceso.py            # Archivo que contiene elproceso en forma CLI (con click) del proyecto.
+      |   |   ├── csv_reader.py           # Archivo lector de CSV en filas o chunks
+      |   |   └── llm.py                  # Archivo de configuracion de LLM.
+      |   └── proceso.py                  # Archivo que contiene elproceso en forma CLI (con click) del proyecto.
       ├── test /
-      |   ├── csv_reader_test.py    # Archivo test para csv_reader
-      |   ├── ingesta_test.py       # Archivo test para ingesta
-      |   └── limpieza_test.py      # Archivo test para limpieza
-      ├── docker-compose.yaml       # Servicios de Postgres y PgAdmin
-      ├── .env                      # Archivo con las variables de entorno necesarias.
-      ├── requirements.txt          # Archivo txt con las librerias necesarias para el proyecto.
-      ├── Makefile                  # Archivo Makefile con los comandos CLI "principales" para ejecutar el proyecto.
-      ├── main.py                   # Archivo Main (llamado al CLI principal)
-      └── README.md                 # Archivo README
+      |   ├── csv_reader_test.py          # Archivo test para csv_reader
+      |   ├── ingesta_test.py             # Archivo test para ingesta
+      |   └── limpieza_test.py            # Archivo test para limpieza
+      ├── docker-compose.yaml             # Servicios de Postgres y PgAdmin
+      ├── .env                            # Archivo con las variables de entorno necesarias.
+      ├── requirements.txt                # Archivo txt con las librerias necesarias para el proyecto.
+      ├── Makefile                        # Archivo Makefile con los comandos CLI "principales" para ejecutar el proyecto.
+      ├── main.py                         # Archivo Main (llamado al CLI principal)
+      ├── diagrama de flujo pipeline.png  # Diagrama de flujo del proyecto.
+      └── README.md                       # Archivo README
 
 ## ⚙️ Requerimientos
 
@@ -70,7 +86,7 @@ docker compose version
 ```bash
    ollama --version
 ```
-   - Una vez se tenga ollama descargado, se requiere descargar los modelos necesarios (mxbai-embed-large y llama3.2):
+   - Una vez se tenga ollama descargado, se requiere descargar los modelos necesarios (`mxbai-embed-large` y `llama3.2`), se pueden usar otros modelos, sin embargo es recomendable usar estos ya que son modelos free y no son muy pesados para su uso:
 
 ```bash
    ollama pull mxbai-embed-large
@@ -82,7 +98,7 @@ docker compose version
 ```bash
    ollama list
 ```   
-
+   - Si se decide utilizar otro tipo de modelo, se deberia hacer el cambio en el archivo `config.yaml`
 
 ## 🚀 Ejecución del Proyecto
 
@@ -92,18 +108,29 @@ Para la ejecución del proyecto, puedes usar las funciones directas de python y 
 
 Primero se hace el levantamiento de servicios de base de datos, para este proyecto, se decidio utilizar postgreSQL y para su visualización pgadmin.
 ```bash
+   # bash
    # Función directa de docker compose
    docker compose up -d
    # Funcion predeterminada con Makefile
    make init_docker
 ```
-Al levantar los servicios de docker, se puede acceder a las bases de datos desde localhost:8080 y usar las credenciales para el acceso, estas credenciales se encuentran en el archivo `.env`, sin embargo, las mismas estaran a continuación (tener en cuenta que son variables de entorno, por lo que si se cambian, deberan acceder con sus credenciales):
+Al levantar los servicios de docker, se puede acceder a las bases de datos desde localhost:8080 y usar las credenciales para el acceso, normalmente estas credenciales no se comparten debido a fugas de seguridad pero debido a que se trata de un reto, estas credenciales se encuentran en el archivo `.env`, a su vez estas credenciales estaran a continuación, cabe aclarar que estas credenciales son variables de entorno, por lo que si se cambian tambien deberan acceder con las nuevas credenciales a las bases de datos, sin embargo no es encesario modificar ninguna parte del pipeline ya que todo el codigo actuara con esas credenciales. 
    
    - PGADMIN_EMAIL : admin@example.com
-   - PGADMIN_PASSWORD=admin123
+   - PGADMIN_PASSWORD : admin123
    - POSTGRES_USER : pragma_admin
    - POSTGRES_PASSWORD : pass123
    - POSTGRES_DB : db_pragma
+
+Si quieres detener todos los servicios de docker, lo puedes hacer con el sigueinte codigo: 
+
+```bash
+   # bash
+   # Detener todos los servicios de Docker.
+   docker stop $(docker ps -q)
+   # Detener uno a uno los servicios de docker
+   docker stop <id_imagen_docker>
+```
 
 
 ### 2. Creación de schema en PostgreSQL:
@@ -128,6 +155,7 @@ Luego de esto se podra acceder a pgadmin a traves del localhost:8080 y observar 
 ```
 ### 3. Inserción de los archivos CSV :
 En este paso, se carga los archivos CSV, dependiendo de como se quiera la ingesta de los datos, puede ser excluyendo o incluyendo el archivo validation.csv; tambien puedes cargar archivo por archivo seleccionando cada archivo. Este proceso mostrara por consola todo el proceso de estadistica, mostrando el valor minimo, maximo, media y el conteo de filas que se han insertado. 
+
 #### 3.1 Inserción de los archivos CSV: 
    - Excluyendo `validation.csv`:
 ``` bash
@@ -272,3 +300,11 @@ Esta parte del proyecto establecera el como se puede acceder a las respuestas pr
    python main.py db-stats
 ```
 
+## 📊 Posibles mejoras futuras.
+
+Como futuras posibles mejoras para este proyecto, se podrian hacer:
+   - Usar procesos en paralelo en la carga para hacer mas eficiente el proceso de ingesta. 
+   - Particionamiento de las tablas (ej. `año/mes` en la tabla `events`) para mejorar las consultas temporales.
+   - Utilizar una nube (AWS, GCP, Azure, etc) para el almacenamiento de los datos, si es que la data llegara a ser mucho mas grande. 
+   - Hacer que el modelo LLM no solo responda preguntas de los usuarios, sino que interactue con el pipeline y ejecute ciertas funciones y que actualice la bd en lugar de solo leerla. 
+   
