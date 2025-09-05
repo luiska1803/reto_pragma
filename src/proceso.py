@@ -96,7 +96,7 @@ def llm(ctx, limit_rows):
     vector = VectorStoreLLM(df, config)
     while True:
         print("\n\n-------------------------------")
-        pregunta = input("Hasme tu pregunta (q para salir): ")
+        pregunta = input("Hazme tu pregunta (q para salir): ")
         print("\n\n")
         if pregunta == "q":
             break
